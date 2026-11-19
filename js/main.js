@@ -1,5 +1,5 @@
 import { afficherPokemon, afficherTypes, activerType, afficherErreurRecherche, afficherDetail, afficherChargement, afficherChargementDetail, afficherErreurDetail, afficherErreurListe, afficherErreurConnexion } from "./ui.js"
-import { getCreatures, getCreature } from "../js/api.js";
+import { getCreatures, getCreature } from "./api.js";
 import { getFavoris, toggleFavori, saveType, getType } from "./storage.js";
 
 
