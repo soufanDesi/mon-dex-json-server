@@ -21,3 +21,17 @@ export function toggleFavori(id) {
 
     localStorage.setItem("favoris", JSON.stringify(favoris));
 }
+
+export function saveType(type) {
+    localStorage.setItem("dernierType", type);
+}
+
+export function getType() {
+    const type = localStorage.getItem("dernierType");
+
+    if(type === null){
+        return "All"
+    }
+
+    return type;
+}
