@@ -1,11 +1,11 @@
 import { afficherPokemon, afficherTypes, activerType, afficherErreurRecherche, afficherDetail, afficherChargement, afficherChargementDetail, afficherErreurDetail, afficherErreurListe, afficherErreurConnexion } from "./ui.js"
-import { getPokemons, getPokemonByName, getPokemonDescription } from "./services/api.js"
-import { getFavoris, toggleFavori } from "./storage.js";
+import { getCreatures, getCreature } from "../js/api.js";
+import { getFavoris, toggleFavori, saveType, getType } from "./storage.js";
 
-let offset = 0;
+
 let dernierPokemonId = null;
 const nouveaux = [];
-const loadmore = document.querySelector("#load-more");
+
 
 function getTypes() {
     const types = nouveaux.map(function (pokemon) {
@@ -21,50 +21,58 @@ function getTypes() {
 }
 
 async function star() {
-    loadmore.disabled = true;
-    if (nouveaux.length === 0) {
-        afficherChargement();
-    }
+    afficherChargement();
 
     try {
-        const creatures = await getPokemons(offset);
+        const creatures = await getCreatures();
 
+        nouveaux.length = 0;
         nouveaux.push(...creatures);
-        offset += creatures.length;
 
         filtrerPokemon();
         getTypes();
 
     } catch (error) {
         afficherErreurListe();
-
-    } finally {
-        loadmore.disabled = false;
     }
 }
-star();
 
-loadmore.addEventListener("click", function () {
-    star();
-})
 
 
 
 const filters = document.querySelector("#filters");
-let typeActif = "All";
+let typeActif = getType();
 
-function filtrerPokemon() {
-    const favoris = getFavoris();
+async function filtrerPokemon() {
+    const recherche = searchInput.value.trim();
 
-    const resultat = nouveaux.filter(function (pokemon) {
+    afficherChargement();
+
+    try {
+        let creatures;
+
         if (typeActif === "Favoris") {
-            return favoris.includes(pokemon.id);
+            creatures = await getCreatures("All", recherche);
+
+            const favoris = getFavoris();
+
+            creatures = creatures.filter(function (pokemon) {
+                return favoris.includes(String(pokemon.id));
+            });
+
+        } else {
+            creatures = await getCreatures(typeActif, recherche);
         }
 
-        return typeActif === "All" || pokemon.type === typeActif;
-    });
+        if (creatures.length === 0) {
+            afficherErreurRecherche();
+        } else {
+            afficherPokemon(creatures);
+        }
 
-    afficherPokemon(resultat);
+    } catch (error) {
+        afficherErreurListe();
+    }
 }
 
 
@@ -73,6 +81,9 @@ filters.addEventListener("click", function (event) {
 
     typeActif = event.target.textContent;
 
+    if (typeActif !== "Favoris") {
+        saveType(typeActif);
+    }
     filtrerPokemon();
     activerType(typeActif);
 })
@@ -83,27 +94,14 @@ const clearSearch = document.querySelector("#clear-search");
 
 
 searchBtn.addEventListener("click", async function () {
-
-    const name = searchInput.value.trim();
-
-    if (name === "") return;
-
     searchBtn.disabled = true;
+
     try {
-        afficherChargement();
-        const pokemon = await getPokemonByName(name);
-        afficherPokemon([pokemon]);
-    } catch (error) {
-        if (error.status === 404) {
-            afficherErreurRecherche();
-        } else {
-            afficherErreurConnexion();
-        }
+        await filtrerPokemon();
     } finally {
         searchBtn.disabled = false;
     }
-
-})
+});
 
 
 clearSearch.addEventListener("click", function () {
@@ -140,9 +138,9 @@ async function chargerDetail(pokemonId) {
     afficherChargementDetail();
 
     try {
-        const pokemon = await getPokemonByName(pokemonId);
-        pokemon.description = await getPokemonDescription(pokemonId);
+        const pokemon = await getCreature(pokemonId);
         afficherDetail(pokemon);
+
     } catch (error) {
         afficherErreurDetail();
     }
@@ -164,7 +162,7 @@ grid.addEventListener("click", function (event) {
         if (!card) return;
 
         toggleFavori(card.dataset.id);
-        
+
         if (typeActif === "Favoris") {
             filtrerPokemon();
             return;
@@ -201,3 +199,5 @@ grid.addEventListener("click", function (event) {
         searchBtn.click();
     }
 });
+
+star();
